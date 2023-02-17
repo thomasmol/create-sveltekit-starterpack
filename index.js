@@ -22,7 +22,7 @@ function write_template_files(template, name, cwd) {
 	copy(`${dir}/package.json`, `${cwd}/package.json`);
 
 	/* const manifest = `${dir}/files.types=${types}.json`;
-	const files = /** @type {import('./types/internal').File[]}  (
+	const files = /** @type {import('./types/internal').File[]} (
 		JSON.parse(fs.readFileSync(manifest, 'utf-8'))
 	);
 
