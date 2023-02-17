@@ -48,5 +48,5 @@ export function copy(from, to, rename = identity) {
 /** @param {string} path */
 export function dist(path) {
 	// change to new URL('./dist/${path}', import.meta.url) when using dist folder (?)
-	return fileURLToPath(new URL(`./${path}`, import.meta.url).href);
+	return fileURLToPath(new URL(`./dist/${path}`, import.meta.url).href);
 }
