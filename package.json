@@ -1,5 +1,5 @@
 {
-  "name": "sveltekit-starterpack",
+  "name": "create-sveltekit-starterpack",
   "version": "1.0.0",
   "description": "A cli tool to quickly setup a sveltekit app",
 
