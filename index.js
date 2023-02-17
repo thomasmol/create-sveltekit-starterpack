@@ -21,8 +21,8 @@ function write_template_files(template, name, cwd) {
 	copy(`${dir}/assets`, cwd, (name) => name.replace('DOT-', '.'));
 	copy(`${dir}/package.json`, `${cwd}/package.json`);
 
-	/* const manifest = `${dir}/files.types=${types}.json`;
-	const files = /** @type {import('./types/internal').File[]} (
+	const manifest = `${dir}/files.json`;
+	const files = /** @type {import('./types/internal').File[]} */ (
 		JSON.parse(fs.readFileSync(manifest, 'utf-8'))
 	);
 
@@ -31,7 +31,7 @@ function write_template_files(template, name, cwd) {
 		mkdirp(path.dirname(dest));
 
 		fs.writeFileSync(dest, file.contents.replace(/~TODO~/g, name));
-	}); */
+	}); 
 }
 
 /**

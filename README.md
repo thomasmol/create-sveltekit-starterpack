@@ -18,5 +18,5 @@ Options for:
 
 
 ```bash
- npm create starterkitkit my-app
+ npm create sveltekit-starterpack my-app
 ```
