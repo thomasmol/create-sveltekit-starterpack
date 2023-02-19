@@ -1,250 +1,253 @@
-import fs from 'fs';
-import path from 'path';
-import parser from 'gitignore-parser';
-import prettier from 'prettier';
-import { transform } from 'sucrase';
-import glob from 'tiny-glob/sync.js';
-import { mkdirp, rimraf } from '../utils.js';
+import fs from "fs";
+import path from "path";
+import parser from "gitignore-parser";
+import prettier from "prettier";
+import { transform } from "sucrase";
+import glob from "tiny-glob/sync.js";
+import { mkdirp, rimraf } from "../utils.js";
 
 /** @param {string} content */
 function convert_typescript(content) {
-	let { code } = transform(content, {
-		transforms: ['typescript'],
-		disableESTransforms: true
-	});
+  let { code } = transform(content, {
+    transforms: ["typescript"],
+    disableESTransforms: true,
+  });
 
-	// sucrase leaves invalid class fields intact
-	code = code.replace(/^\s*[a-z]+;$/gm, '');
+  // sucrase leaves invalid class fields intact
+  code = code.replace(/^\s*[a-z]+;$/gm, "");
 
-	// Prettier strips 'unnecessary' parens from .ts files, we need to hack them back in
-	code = code.replace(/(\/\*\* @type.+? \*\/) (.+?) \/\*\*\*\//g, '$1($2)');
+  // Prettier strips 'unnecessary' parens from .ts files, we need to hack them back in
+  code = code.replace(/(\/\*\* @type.+? \*\/) (.+?) \/\*\*\*\//g, "$1($2)");
 
-	return prettier.format(code, {
-		parser: 'babel',
-		useTabs: true,
-		singleQuote: true,
-		trailingComma: 'none',
-		printWidth: 100
-	});
+  return prettier.format(code, {
+    parser: "babel",
+    useTabs: true,
+    singleQuote: true,
+    trailingComma: "none",
+    printWidth: 100,
+  });
 }
 
 /** @param {string} content */
 function strip_jsdoc(content) {
-	return content
-		.replace(/ \/\*\*\*\//g, '')
-		.replace(
-			/\/\*\*([\s\S]+?)(@[\s\S]+?)?\*\/([\s\n]+)/g,
-			(match, description, tags, whitespace) => {
-				if (/^\s+(\*\s*)?$/.test(description)) {
-					return '';
-				}
+  return content.replace(/ \/\*\*\*\//g, "").replace(
+    /\/\*\*([\s\S]+?)(@[\s\S]+?)?\*\/([\s\n]+)/g,
+    // @ts-ignore
+    (match, description, tags, whitespace) => {
+      if (/^\s+(\*\s*)?$/.test(description)) {
+        return "";
+      }
 
-				return `/**${description.replace(/\*\ $/, '')}*/${whitespace}`;
-			}
-		);
+      return `/**${description.replace(/\*\ $/, "")}*/${whitespace}`;
+    }
+  );
 }
 
 /** @param {Set<string>} shared */
 async function generate_templates(shared) {
-	const templates = fs.readdirSync('templates');
+  const templates = fs.readdirSync("templates");
 
-	for (const template of templates) {
-		if (template[0] === '.') continue;
+  for (const template of templates) {
+    if (template[0] === ".") continue;
 
-		const dir = `dist/templates/${template}`;
-		const assets = `${dir}/assets`;
-		mkdirp(assets);
+    const dir = `dist/templates/${template}`;
+    const assets = `${dir}/assets`;
+    mkdirp(assets);
 
-		const cwd = path.resolve('templates', template);
+    const cwd = path.resolve("templates", template);
 
-		const gitignore_file = path.join(cwd, '.gitignore');
-		if (!fs.existsSync(gitignore_file)) {
-			throw new Error(`"${template}" template must have a .gitignore file`);
-		}
+    const gitignore_file = path.join(cwd, ".gitignore");
+    if (!fs.existsSync(gitignore_file)) {
+      throw new Error(`"${template}" template must have a .gitignore file`);
+    }
 
-		const gitignore = parser.compile(fs.readFileSync(gitignore_file, 'utf-8'));
+    const gitignore = parser.compile(fs.readFileSync(gitignore_file, "utf-8"));
 
-		const ignore_file = path.join(cwd, '.ignore');
-		if (!fs.existsSync(ignore_file)) throw new Error('Template must have a .ignore file');
-		const ignore = parser.compile(fs.readFileSync(ignore_file, 'utf-8'));
+    const ignore_file = path.join(cwd, ".ignore");
+    if (!fs.existsSync(ignore_file))
+      throw new Error("Template must have a .ignore file");
+    const ignore = parser.compile(fs.readFileSync(ignore_file, "utf-8"));
 
-		const meta_file = path.join(cwd, '.meta.json');
-		if (!fs.existsSync(meta_file)) throw new Error('Template must have a .meta.json file');
+    const meta_file = path.join(cwd, ".meta.json");
+    if (!fs.existsSync(meta_file))
+      throw new Error("Template must have a .meta.json file");
 
-		/** @type {Record<string, import('../types/internal.js').File[]>} */
-		/* const types = {
+    /** @type {Record<string, import('../types/internal.js').File[]>} */
+    /* const types = {
 			typescript: [],
 			checkjs: [],
 			null: []
 		}; */
 
-		/** @type {import('../types/internal.js').File[]} */
-		const typescript = [];
+    /** @type {import('../types/internal.js').File[]} */
+    const typescript = [];
 
-		glob('**/*', { cwd, filesOnly: true, dot: true }).forEach((name) => {
-			// the package.template.json thing is a bit annoying — basically we want
-			// to be able to develop and deploy the app from here, but have a different
-			// package.json in newly created projects (based on package.template.json)
-			if (name === 'package.template.json') {
-				let contents = fs.readFileSync(path.join(cwd, name), 'utf8');
-				// TODO package-specific versions
-				contents = contents.replace(/workspace:\*/g, 'next');
-				fs.writeFileSync(`${dir}/package.json`, contents);
-				return;
-			}
+    glob("**/*", { cwd, filesOnly: true, dot: true }).forEach((name) => {
+      // the package.template.json thing is a bit annoying — basically we want
+      // to be able to develop and deploy the app from here, but have a different
+      // package.json in newly created projects (based on package.template.json)
+      if (name === "package.template.json") {
+        let contents = fs.readFileSync(path.join(cwd, name), "utf8");
+        // TODO package-specific versions
+        contents = contents.replace(/workspace:\*/g, "next");
+        fs.writeFileSync(`${dir}/package.json`, contents);
+        return;
+      }
 
-			// ignore files that are written conditionally
-			if (shared.has(name)) return;
+      // ignore files that are written conditionally
+      if (shared.has(name)) return;
 
-			// ignore contents of .gitignore or .ignore
-			if (!gitignore.accepts(name) || !ignore.accepts(name) || name === '.ignore') return;
+      // ignore contents of .gitignore or .ignore
+      if (
+        !gitignore.accepts(name) ||
+        !ignore.accepts(name) ||
+        name === ".ignore"
+      )
+        return;
 
-			if (/\.(ts|svelte)$/.test(name)) {
-				const contents = fs.readFileSync(path.join(cwd, name), 'utf8');
+      if (/\.(ts|svelte)$/.test(name)) {
+        const contents = fs.readFileSync(path.join(cwd, name), "utf8");
 
-				if (name.endsWith('.d.ts')) {
-					typescript.push({ name, contents });
-				} else if (name.endsWith('.ts')) {
-					const js = convert_typescript(contents);
+        if (name.endsWith(".d.ts")) {
+          typescript.push({ name, contents });
+        } else if (name.endsWith(".ts")) {
+          // @ts-ignore
+          const js = convert_typescript(contents);
 
-					typescript.push({
-						name,
-						contents: strip_jsdoc(contents)
-					});
+          typescript.push({
+            name,
+            contents: strip_jsdoc(contents),
+          });
+        } else {
+          // we jump through some hoops, rather than just using svelte.preprocess,
+          // so that the output preserves the original formatting to the extent
+          // possible (e.g. preserving double line breaks). Sucrase is the best
+          // tool for the job because it just removes the types; Prettier then
+          // tidies up the end result
+          // @ts-ignore
+          const js_contents = contents.replace(
+            /<script([^>]+)>([\s\S]+?)<\/script>/g,
+            // @ts-ignore
+            (m, attrs, typescript) => {
+              // Sucrase assumes 'unused' imports (which _are_ used, but only
+              // in the markup) are type imports, and strips them. This step
+              // prevents it from drawing that conclusion
+              const imports = [];
+              const import_pattern = /import (.+?) from/g;
+              let import_match;
+              while ((import_match = import_pattern.exec(typescript))) {
+                const word_pattern = /[a-z_$][a-z0-9_$]*/gi;
+                let word_match;
+                while ((word_match = word_pattern.exec(import_match[1]))) {
+                  imports.push(word_match[0]);
+                }
+              }
 
+              const suffix = `\n${imports.join(",")}`;
 
-				} else {
-					// we jump through some hoops, rather than just using svelte.preprocess,
-					// so that the output preserves the original formatting to the extent
-					// possible (e.g. preserving double line breaks). Sucrase is the best
-					// tool for the job because it just removes the types; Prettier then
-					// tidies up the end result
-					const js_contents = contents.replace(
-						/<script([^>]+)>([\s\S]+?)<\/script>/g,
-						(m, attrs, typescript) => {
-							// Sucrase assumes 'unused' imports (which _are_ used, but only
-							// in the markup) are type imports, and strips them. This step
-							// prevents it from drawing that conclusion
-							const imports = [];
-							const import_pattern = /import (.+?) from/g;
-							let import_match;
-							while ((import_match = import_pattern.exec(typescript))) {
-								const word_pattern = /[a-z_$][a-z0-9_$]*/gi;
-								let word_match;
-								while ((word_match = word_pattern.exec(import_match[1]))) {
-									imports.push(word_match[0]);
-								}
-							}
+              // @ts-ignore
+              const transformed = transform(typescript + suffix, {
+                transforms: ["typescript"],
+                disableESTransforms: true,
+              }).code.slice(0, -suffix.length);
 
-							const suffix = `\n${imports.join(',')}`;
+              // @ts-ignore
+              const contents = prettier
+                .format(transformed, {
+                  parser: "babel",
+                  useTabs: true,
+                  singleQuote: true,
+                  trailingComma: "none",
+                  printWidth: 100,
+                })
+                .trim()
+                .replace(/^(.)/gm, "\t$1");
 
-							const transformed = transform(typescript + suffix, {
-								transforms: ['typescript'],
-								disableESTransforms: true
-							}).code.slice(0, -suffix.length);
+              return `<script${attrs.replace(
+                ' lang="ts"',
+                ""
+              )}>\n${contents}\n</script>`;
+            }
+          );
 
-							const contents = prettier
-								.format(transformed, {
-									parser: 'babel',
-									useTabs: true,
-									singleQuote: true,
-									trailingComma: 'none',
-									printWidth: 100
-								})
-								.trim()
-								.replace(/^(.)/gm, '\t$1');
+          typescript.push({
+            name,
+            contents: strip_jsdoc(contents),
+          });
+        }
+      } else {
+        const dest = path.join(assets, name.replace(/^\./, "DOT-"));
+        mkdirp(path.dirname(dest));
+        fs.copyFileSync(path.join(cwd, name), dest);
+      }
+    });
 
-							return `<script${attrs.replace(' lang="ts"', '')}>\n${contents}\n</script>`;
-						}
-					);
-
-					typescript.push({
-						name,
-						contents: strip_jsdoc(contents)
-					});
-				}
-			} else {
-				const dest = path.join(assets, name.replace(/^\./, 'DOT-'));
-				mkdirp(path.dirname(dest));
-				fs.copyFileSync(path.join(cwd, name), dest);
-			}
-		});
-
-		fs.copyFileSync(meta_file, `${dir}/meta.json`);
-		fs.writeFileSync(
-			`${dir}/files.json`,
-			JSON.stringify(typescript, null, '\t')
-		);
-		/* fs.writeFileSync(`${dir}/files.types=checkjs.json`, JSON.stringify(types.checkjs, null, '\t'));
+    fs.copyFileSync(meta_file, `${dir}/meta.json`);
+    fs.writeFileSync(
+      `${dir}/files.json`,
+      JSON.stringify(typescript, null, "\t")
+    );
+    /* fs.writeFileSync(`${dir}/files.types=checkjs.json`, JSON.stringify(types.checkjs, null, '\t'));
 		fs.writeFileSync(`${dir}/files.types=null.json`, JSON.stringify(types.null, null, '\t')); */
-	}
+  }
 }
 
 async function generate_shared() {
-	const cwd = path.resolve('shared');
+  const cwd = path.resolve("shared");
 
-	/** @type {Set<string>} */
-	const shared = new Set();
+  /** @type {Set<string>} */
+  const shared = new Set();
 
-	/** @type {Array<{ name: string, include: string[], exclude: string[], contents: string }>} */
-	const files = [];
+  /** @type {Array<{ name: string, include: string[], exclude: string[], contents: string }>} */
+  const files = [];
 
-	glob('**/*', { cwd, filesOnly: true, dot: true }).forEach((file) => {
-		const contents = fs.readFileSync(path.join(cwd, file), 'utf8');
+  glob("**/*", { cwd, filesOnly: true, dot: true }).forEach((file) => {
+    const contents = fs.readFileSync(path.join(cwd, file), "utf8");
 
-		/** @type {string[]} */
-		const include = [];
+    /** @type {string[]} */
+    const include = [];
 
-		/** @type {string[]} */
-		const exclude = [];
+    /** @type {string[]} */
+    const exclude = [];
 
-		let name = file;
+    let name = file;
 
-		if (file.startsWith('+') || file.startsWith('-')) {
-			const [conditions, ...rest] = file.split(path.sep);
+    if (file.startsWith("+") || file.startsWith("-")) {
+      const [conditions, ...rest] = file.split(path.sep);
 
-			const pattern = /([+-])([a-z]+)/g;
-			let match;
-			while ((match = pattern.exec(conditions))) {
-				const set = match[1] === '+' ? include : exclude;
-				set.push(match[2]);
-			}
+      const pattern = /([+-])([a-z]+)/g;
+      let match;
+      while ((match = pattern.exec(conditions))) {
+        const set = match[1] === "+" ? include : exclude;
+        set.push(match[2]);
+      }
 
-			name = rest.join('/');
-		}
+      name = rest.join("/");
+    }
 
-		if (name.endsWith('.ts') && !include.includes('typescript')) {
+    shared.add(name);
+    files.push({ name, include, exclude, contents });
+  });
 
+  files.sort(
+    (a, b) =>
+      a.include.length +
+      a.exclude.length -
+      (b.include.length + b.exclude.length)
+  );
 
-			// typescript
-			files.push({
-				name,
-				include: [...include, 'typescript'],
-				exclude,
-				contents: strip_jsdoc(contents)
-			});
+  fs.writeFileSync("dist/shared.json", JSON.stringify({ files }, null, "\t"));
 
-			shared.add(name);
-		} else {
-			shared.add(name);
-			files.push({ name, include, exclude, contents });
-		}
-	});
-
-	files.sort((a, b) => a.include.length + a.exclude.length - (b.include.length + b.exclude.length));
-
-	fs.writeFileSync('dist/shared.json', JSON.stringify({ files }, null, '\t'));
-
-	shared.delete('package.json');
-	return shared;
+  shared.delete("package.json");
+  return shared;
 }
 
 async function main() {
-	rimraf('dist');
-	mkdirp('dist');
+  rimraf("dist");
+  mkdirp("dist");
 
-	const shared = await generate_shared();
-	await generate_templates(shared);
+  const shared = await generate_shared();
+  await generate_templates(shared);
 }
 
 main();
