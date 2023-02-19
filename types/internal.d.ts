@@ -2,7 +2,8 @@
 export type Options = {
 	name: string;
 	tailwindcss: boolean;
-	template: 'default' | 'openai'; // | 'openai' | 'ethers.js';
+	openai: boolean;
+	template: 'default'; // | 'openai' | 'ethers.js';
 
 };
 

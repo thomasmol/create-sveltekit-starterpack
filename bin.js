@@ -71,6 +71,14 @@ const options = /** @type {import('./types/internal').Options} */ (
 					initial: false,
 					active: 'Yes',
 					inactive: 'No'
+				},
+				{
+					type: 'toggle',
+					name: 'openai',
+					message: 'Add OpenAI API?',
+					initial: false,
+					active: 'Yes',
+					inactive: 'No'
 				}
 			],
 			{
