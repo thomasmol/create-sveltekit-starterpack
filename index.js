@@ -31,7 +31,7 @@ function write_template_files(template, name, cwd) {
 		mkdirp(path.dirname(dest));
 
 		fs.writeFileSync(dest, file.contents.replace(/~TODO~/g, name));
-	}); 
+	});
 }
 
 /**
@@ -78,7 +78,7 @@ function write_common_files(cwd, options, name) {
  * @returns {boolean}
  */
 function matches_condition(condition, options) {
-	if (condition === 'default' || condition === 'openai' ) {
+	if (condition === 'default') {
 		return options.template === condition;
 	}
 	return options[condition];

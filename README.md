@@ -26,6 +26,7 @@
 ### 🫵 These packages are optional (choose them during the prompts):
 * TailwindCSS
   * with postcss, autoprefixer and prettier setup
+  * includes the forms and typography plugins
   * adds a Button and LinkButton component
 * OpenAI
   * adds the OpenAI package
