@@ -4,6 +4,13 @@
 ```bash
  npm create sveltekit-starterpack@latest
 ```
+### 📦 Install dependencies and run:
+
+```bash
+ cd my-project
+ npm install
+ npm run dev
+```
 
 ### 🚀 These packages/components are included by default:
 * Typescript
