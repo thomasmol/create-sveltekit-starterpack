@@ -19,7 +19,7 @@
 * Playwright
 * Vitest
 * Some icons (loading, external link)
-* GNU Licence file
+* GNU General Public License file
 * Citation file
 
 
@@ -39,7 +39,8 @@
 * @solana/web3.js (wip)
 
 # 🙋 Questions & Suggestions
-Feel free to open a issue on Github or contact me on [twitter](https://twitter.com/thomas_a_mol).
+You have any questions, bugs or suggestions?
+Feel free to open a issue on Github or contact me on [twitter](https://twitter.com/thomas_mol).
 
 # License
 [MIT](https://github.com/thomasmol/create-sveltekit-starterpack/blob/HEAD/LICENSE)
